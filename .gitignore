@@ -1,0 +1,14 @@
+# Node / Yarn
+node_modules/
+.yarn/
+.pnp.*
+# App build artifacts
+app/build/
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+# Terraform
+infra/.terraform/
+infra/*.tfstate*
+infra/terraform.tfvars
