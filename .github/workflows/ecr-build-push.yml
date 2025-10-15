@@ -1,4 +1,4 @@
-name: CI - Build & Push to ECR
+name: CI - Buil & Push to ECR
 
 on:
   push:
