@@ -4,6 +4,10 @@ on:
   push:
     branches: ["main"]
 
+permissions:
+  id-token: write   # REQUIRED for OIDC
+  contents: read
+
 env:
   AWS_REGION: eu-west-2
   ECR_REPOSITORY: tm-app
@@ -15,20 +19,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Debug AWS vars
-        run: |
-          echo "AWS_ACCESS_KEY_ID length: ${#AWS_ACCESS_KEY_ID}"
-          echo "AWS_SECRET_ACCESS_KEY length: ${#AWS_SECRET_ACCESS_KEY}"
-          echo "Region: $AWS_REGION"
-          aws sts get-caller-identity || echo "STS failed"        
-
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::491065739552:role/GitHubActionsECRRole
+          role-session-name: GitHubOIDC
           aws-region: ${{ env.AWS_REGION }}
-      - name: Test AWS Credentials
+
+      - name: Test AWS credentials
         run: aws sts get-caller-identity
 
 
