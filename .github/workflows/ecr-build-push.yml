@@ -11,11 +11,13 @@ permissions:
 env:
   AWS_REGION: eu-west-2
   ECR_REPOSITORY: tm-app
-  IMAGE_TAG: latest
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set-tag.outputs.image_tag }}  # <-- added
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,18 +36,23 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Optional: dynamically tag the image (can stay 'latest' for now)
+      - name: Set image tag
+        id: set-tag
+        run: echo "image_tag=latest" >> $GITHUB_OUTPUT   # <-- create output variable
+
       - name: Build Docker image
-        run: docker build -t "$ECR_REPOSITORY:$IMAGE_TAG" ./app
+        run: docker build -t "$ECR_REPOSITORY:${{ steps.set-tag.outputs.image_tag }}" ./app
 
       - name: Tag image
         run: |
           echo "REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
-          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "$ECR_REPOSITORY:${{ steps.set-tag.outputs.image_tag }}" "$REGISTRY/$ECR_REPOSITORY:${{ steps.set-tag.outputs.image_tag }}"
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
 
       - name: Push image
-        run: docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        run: docker push "$REGISTRY/$ECR_REPOSITORY:${{ steps.set-tag.outputs.image_tag }}"
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
 
@@ -53,7 +60,7 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      TF_VAR_image_tag: ${{ env.IMAGE_TAG }}   # <-- this feeds Terraform var
+      TF_VAR_image_tag: ${{ needs.build-and-push.outputs.image_tag }}   # <-- FIXED
     steps:
       - name: Checkout
         uses: actions/checkout@v4
